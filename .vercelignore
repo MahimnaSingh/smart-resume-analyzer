@@ -1,0 +1,39 @@
+# never upload local/dev artifacts
+.vercel
+.vercel/output
+node_modules
+.next/cache
+.next/trace
+.next/server/app/**/RSCManifest.json
+dist
+build
+coverage
+tmp
+.cache
+*.log
+
+# heavy data/assets that shouldn’t ship
+uploads
+storage
+datasets
+data
+models
+.venv
+venv
+__pycache__
+*.pt
+*.bin
+*.ckpt
+*.onnx
+*.h5
+*.pkl
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# git junk
+.git
+.git-lfs
+.gitignore
