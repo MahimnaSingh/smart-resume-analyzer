@@ -1,35 +1,4 @@
-﻿from flask import Flask, request, jsonify, Response
-import io
-
-app = Flask(__name__)
-
-@app.route("/", defaults={"path": ""}, methods=["GET"])
-@app.route("/<path:path>", methods=["GET"])
-def health(path):
-    return Response("Flask OK: runtime & routing work", mimetype="text/plain")
-
-def extract_pdf_text(b: bytes) -> str:
-    try:
-        from PyPDF2 import PdfReader
-        reader = PdfReader(io.BytesIO(b))
-        return "\n".join([(p.extract_text() or "") for p in reader.pages])
-    except Exception as e:
-        return f"[pdf-extract-error] {e}"
-
-@app.post("/analyze")
-def analyze():
-    if "file" not in request.files:
-        return jsonify(ok=False, error="missing 'file' field"), 400
-    f = request.files["file"]; name = (f.filename or "").lower(); blob = f.read()
-    if name.endswith(".pdf"): text = extract_pdf_text(blob)
-    elif name.endswith(".txt"): text = blob.decode("utf-8", "ignore")
-    else: return jsonify(ok=False, error="Only .pdf or .txt supported"), 415
-    low = (text or "").lower()
-    scores = {
-      "python": sum(kw in low for kw in ["python","pandas","numpy"]),
-      "data":   sum(kw in low for kw in ["sql","excel","power bi","tableau"]),
-      "ml":     sum(kw in low for kw in ["scikit-learn","machine learning","regression","classification"]),
-    }
-    return jsonify(ok=True, filename=name, scores=scores, total=sum(scores.values()), preview=text[:800])
-
+﻿def app(environ, start_response):
+    start_response("200 OK", [("Content-Type", "text/plain")])
+    return [b"OK"]
 handler = app
