@@ -1,4 +1,4 @@
-﻿# api/index.py  (UTF-8, no BOM)
+﻿# api/index.py  (UTF-8)
 from flask import Flask, request, jsonify, Response
 import io
 
@@ -8,19 +8,6 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB uploads
 @app.get("/")
 def root():
     return Response("Flask OK: runtime & routing work", mimetype="text/plain")
-
-@app.get("/upload")
-def upload_form():
-    # Tiny browser form for quick manual testing
-    return Response(
-        """<!doctype html><meta charset="utf-8">
-        <h1>Upload resume</h1>
-        <form action="/analyze" method="post" enctype="multipart/form-data">
-          <input type="file" name="file" accept=".pdf,.txt" />
-          <button type="submit">Analyze</button>
-        </form>""",
-        mimetype="text/html"
-    )
 
 def extract_pdf_text(file_bytes: bytes) -> str:
     try:
@@ -36,7 +23,7 @@ def extract_pdf_text(file_bytes: bytes) -> str:
     except Exception as e:
         return f"[pdf-extract-error] {e}"
 
-# very lightweight keyword buckets; expand later
+# lightweight keyword buckets; tweak as you like
 SKILL_BUCKETS = {
     "python": ["python", "pandas", "numpy"],
     "data":   ["sql", "excel", "power bi", "tableau"],
@@ -62,9 +49,4 @@ def analyze():
     low = (text or "").lower()
     scores = {bucket: sum(kw in low for kw in kws) for bucket, kws in SKILL_BUCKETS.items()}
     total = int(sum(scores.values()))
-
     return jsonify(ok=True, filename=name, scores=scores, total=total, preview=(text or "")[:800])
-
-@app.errorhandler(413)
-def too_big(_):
-    return jsonify(ok=False, error="File too large (max 10MB)"), 413
