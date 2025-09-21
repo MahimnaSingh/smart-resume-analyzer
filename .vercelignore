@@ -37,3 +37,43 @@ __pycache__
 .git
 .git-lfs
 .gitignore
+# Python envs & caches
+venv
+venv310
+.venv
+__pycache__/
+*.pyc
+
+# Local uploads / big artifacts
+Uploaded_Resumes
+datasets
+models
+data
+*.pdf
+*.zip
+*.tar.gz
+*.7z
+*.mp4
+*.mov
+
+# Node leftovers (if any)
+node_modules
+.next
+dist
+build
+venv
+venv310
+.venv
+__pycache__/
+*.pyc
+Uploaded_Resumes
+datasets
+models
+data
+*.pdf
+*.zip
+*.tar.gz
+node_modules
+.next
+dist
+build
