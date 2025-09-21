@@ -1,14 +1,2 @@
 Flask>=2.3,<4
 PyPDF2>=3.0
-
-numpy
-pandas
-scikit-learn
-python-docx
-PyPDF2
-nltk
-spacy
-transformers
-torch
-tensorflow
-gunicorn
