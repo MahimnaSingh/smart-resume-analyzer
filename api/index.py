@@ -1,4 +1,8 @@
-﻿def app(environ, start_response):
-    start_response("200 OK", [("Content-Type", "text/plain")])
-    return [b"OK"]
-handler = app
+﻿# api/index.py
+from flask import Flask, Response
+
+app = Flask(__name__)
+
+@app.get("/")
+def root():
+    return Response("Flask OK", mimetype="text/plain")
