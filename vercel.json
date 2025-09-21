@@ -1,1 +1,1 @@
-{"version":2,"rewrites":[{"destination":"/api/index/","source":"/api/(.*)"},{"destination":"/index.html","source":"/"},{"destination":"/index.html","source":"/(.*)"}]}
+{"version":2,"rewrites":[{"destination":"/api/:match*","source":"/api/:match*"},{"destination":"/index.html","source":"/"},{"destination":"/index.html","source":"/:path*"}]}
