@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Smart Resume Analyzer</title>
+  <link rel="icon" href="/Logo/SRA_Logo.ico" />
+  <style>
+    :root { --bg:#0b0d10; --panel:#11151a; --soft:#0e1318; --border:#1f2937;
+            --text:#e6edf3; --muted:#9fb0c0; --accent:#3b82f6; --ok:#16a34a; --err:#ef4444; }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif}
+    .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+    .sidebar{background:var(--soft);border-right:1px solid var(--border);padding:24px;position:sticky;top:0;height:100vh}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .brand img{width:36px;height:36px;border-radius:8px;object-fit:cover;background:#000}
+    .muted{color:var(--muted);font-size:12px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    .radio-group{display:grid;gap:10px;margin-top:10px}
+    .main{padding:28px;display:grid;gap:16px}
+    h1{margin:0 0 6px} h2{margin:0 0 10px;font-size:18px}
+    label{font-weight:600}
+    input[type="text"],input[type="email"]{width:100%;background:#0b0f14;color:var(--text);border:1px solid var(--border);padding:10px 12px;border-radius:12px}
+    input[type="file"]{width:100%;background:#0b0f14;color:var(--text);border:1px dashed var(--border);padding:12px;border-radius:12px}
+    button{padding:12px 16px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .grid{display:grid;gap:16px}
+    .grid.two{grid-template-columns:1fr auto}
+    .status{font-size:13px;color:var(--muted);margin-top:8px;white-space:pre-wrap}
+    .status.ok{color:var(--ok)} .status.err{color:var(--err)}
+    .cards{display:grid;gap:16px}
+    .stat{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px dashed var(--border);border-radius:12px;background:var(--soft)}
+    .bar{height:10px;background:#0b0f14;border:1px solid var(--border);border-radius:6px;overflow:hidden;flex:1;margin:0 12px}
+    .bar>span{display:block;height:100%;background:var(--accent);width:0}
+    .tag{display:inline-block;padding:4px 8px;border:1px solid var(--border);border-radius:999px;background:#0b0f14;font-size:12px;color:var(--muted);margin:2px 6px 0 0}
+    pre{white-space:pre-wrap;word-break:break-word;background:#0b0f14;border:1px solid var(--border);border-radius:12px;padding:12px;max-height:320px;overflow:auto}
+    .pdfbox{height:420px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#0b0f14}
+    .pdfbox iframe{width:100%;height:100%;border:0;background:#0b0f14}
+    .footer{margin-top:8px;color:var(--muted);font-size:12px}
+    @media (max-width:980px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto}.grid.two{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="/Logo/SRA_Logo.jpg" alt="SRA" onerror="this.style.display='none'">
+      <div>
+        <strong>Smart Resume Analyzer</strong>
+        <div class="muted">Choose User</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="radio-group" role="radiogroup" aria-label="Choose User">
+        <label><input type="radio" name="who" value="normal" checked> Normal User</label>
+        <label><input type="radio" name="who" value="admin"> Admin</label>
+      </div>
+      <div id="adminNote" class="muted" style="margin-top:10px;display:none;">
+        Admin panel requires a database/secure backend and is disabled on this build.
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="panel">
+      <h2>Profile (optional)</h2>
+      <div class="grid">
+        <div><label>Name</label><input id="name" type="text" placeholder="Your name"></div>
+        <div><label>Email</label><input id="email" type="email" placeholder="you@example.com"></div>
+      </div>
+    </div>
+
+    <div class="footer">© Smart Resume Analyzer</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- Upload -->
+    <div class="panel">
+      <h1>Upload Resume</h1>
+      <div class="muted">Upload a <b>.pdf</b> or <b>.txt</b> resume. We’ll extract text and run a quick keyword scan (Python / Data / ML).</div>
+      <div style="height:10px"></div>
+      <form id="form" enctype="multipart/form-data">
+        <div class="grid two">
+          <input id="file" type="file" accept=".pdf,.txt" required />
+          <button id="btn" type="submit">Analyze</button>
+        </div>
+      </form>
+      <div id="status" class="status"></div>
+    </div>
+
+    <!-- Results -->
+    <div id="cards" class="cards" style="display:none;">
+      <div class="panel">
+        <h2>Scores</h2>
+        <div id="scoreCards" class="grid"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Recommended Skills</h2>
+        <div id="recSkills" class="muted">Shown based on detected gaps</div>
+      </div>
+
+      <div class="panel">
+        <h2>Course Recommendations</h2>
+        <div id="courses" class="grid"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Resume Text Preview</h2>
+        <pre id="preview"></pre>
+      </div>
+
+      <div class="panel">
+        <h2>PDF Preview</h2>
+        <div class="pdfbox"><iframe id="pdfFrame" title="PDF preview"></iframe></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // Your Flask function file is api/index.py → routes appear under /api/index/*
+  const API_ANALYZE = '/api/index/analyze';
+
+  // Buckets (simple mirror of your Streamlit logic)
+  const BUCKETS = {
+    python: ["python","pandas","numpy"],
+    data:   ["sql","excel","power bi","tableau"],
+    ml:     ["scikit-learn","machine learning","regression","classification"]
+  };
+
+  const COURSES = {
+    python: [
+      {t:"Python Basics", u:"https://docs.python.org/3/tutorial/"},
+      {t:"Pandas Getting Started", u:"https://pandas.pydata.org/docs/getting_started/index.html"},
+      {t:"NumPy Quickstart", u:"https://numpy.org/doc/stable/user/absolute_beginners.html"},
+      {t:"Automate with Python (free)", u:"https://automatetheboringstuff.com/"}
+    ],
+    data: [
+      {t:"SQL Tutorial", u:"https://www.sqlbolt.com/"},
+      {t:"Excel Formulas", u:"https://support.microsoft.com/excel"},
+      {t:"Tableau Learning", u:"https://www.tableau.com/learn/training"},
+      {t:"Power BI docs", u:"https://learn.microsoft.com/power-bi/"}
+    ],
+    ml: [
+      {t:"scikit-learn User Guide", u:"https://scikit-learn.org/stable/user_guide.html"},
+      {t:"Intro to ML (free)", u:"https://developers.google.com/machine-learning/crash-course"},
+      {t:"Andrew Ng ML Notes", u:"https://cs229.stanford.edu/syllabus.html"},
+      {t:"Hands-on ML notes", u:"https://github.com/ageron/handson-ml3"}
+    ]
+  };
+
+  const $ = s => document.querySelector(s);
+  const form = $('#form'), fileInput = $('#file'), btn = $('#btn');
+  const statusEl = $('#status'), cards = $('#cards');
+  const scoreCards = $('#scoreCards'), recSkills = $('#recSkills'), courses = $('#courses');
+  const preview = $('#preview'), pdfFrame = $('#pdfFrame');
+  const adminNote = $('#adminNote');
+
+  document.querySelectorAll('input[name="who"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      adminNote.style.display = (r.value === 'admin' && r.checked) ? 'block' : 'none';
+    });
+  });
+
+  function setStatus(msg, type=''){ statusEl.className = 'status ' + (type||''); statusEl.textContent = msg; }
+  function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+  // Never call res.json() directly — parse safely and show raw snippet if needed
+  async function safeJson(res){
+    const txt = await res.text();                 // always read the body
+    if (!txt) return { ok:false, error:`Empty response (HTTP ${res.status})` };
+    try { return JSON.parse(txt); }
+    catch { return { ok:false, error:`Non-JSON (HTTP ${res.status})`, raw: txt.slice(0, 800) }; }
+  }
+
+  function renderScores(scores){
+    scoreCards.innerHTML = '';
+    const entries = Object.entries(scores||{});
+    if(!entries.length){ scoreCards.innerHTML='<div class="stat">No keywords detected</div>'; return; }
+    entries.forEach(([k,v])=>{
+      const val = Number(v)||0;
+      const el = document.createElement('div');
+      el.className='stat';
+      el.innerHTML = `
+        <div style="min-width:120px;font-weight:700;text-transform:uppercase">${k}</div>
+        <div class="bar"><span style="width:${Math.min(100, val*20)}%"></span></div>
+        <div>${val}</div>`;
+      scoreCards.appendChild(el);
+    });
+  }
+
+  function computeRecSkills(scores){
+    const rec = [];
+    for(const [bucket,kws] of Object.entries(BUCKETS)){
+      const hits = Number((scores||{})[bucket]||0);
+      if(hits < Math.ceil(kws.length/3)) rec.push(...kws);
+    }
+    return [...new Set(rec)].map(s=>s.replace(/\b\w/g, m=>m.toUpperCase())).slice(0, 20);
+  }
+
+  function renderCourses(scores){
+    courses.innerHTML = '';
+    const order = Object.entries(scores||{}).sort((a,b)=>b[1]-a[1]).map(([k])=>k);
+    (order.length?order:['python','data','ml']).forEach(bucket=>{
+      const list = COURSES[bucket]||[];
+      const card = document.createElement('div');
+      card.className = 'panel';
+      card.innerHTML = `<h2 style="margin-bottom:8px">${bucket.toUpperCase()} Courses</h2>`;
+      const ul = document.createElement('ul');
+      ul.style.margin='0'; ul.style.paddingLeft='18px';
+      list.forEach(c=>{
+        const li = document.createElement('li');
+        li.innerHTML = `<a href="${c.u}" target="_blank" rel="noopener">${esc(c.t)}</a>`;
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+      courses.appendChild(card);
+    });
+  }
+
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    setStatus(''); cards.style.display='none';
+
+    const f = fileInput.files[0];
+    if(!f){ setStatus('Pick a .pdf or .txt file', 'err'); return; }
+    if(!/\.(pdf|txt)$/i.test(f.name)){ setStatus('Only .pdf or .txt are supported','err'); return; }
+
+    btn.disabled = true;
+    setStatus('Analyzing…');
+
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('name', ($('#name')?.value||''));
+    fd.append('email', ($('#email')?.value||''));
+
+    try{
+      const res  = await fetch(API_ANALYZE, { method:'POST', body: fd, headers:{ 'Accept':'application/json' } });
+      const data = await safeJson(res);
+
+      if (!res.ok || !data.ok) {
+        const detail = data.error || data.message || `HTTP ${res.status}`;
+        const extra  = data.raw ? `\n\nRaw response (first 800 chars):\n${data.raw}` : '';
+        throw new Error(detail + extra);
+      }
+
+      renderScores(data.scores);
+      const rec = computeRecSkills(data.scores);
+      recSkills.innerHTML = rec.length ? rec.map(s=>`<span class="tag">${esc(s)}</span>`).join(' ')
+                                       : '<span class="muted">Looks solid! No obvious gaps.</span>';
+      renderCourses(data.scores);
+      preview.textContent = esc(data.preview || '');
+
+      if (f.type === 'application/pdf' || /\.pdf$/i.test(f.name)) {
+        const url = URL.createObjectURL(f);
+        pdfFrame.src = url;
+      } else {
+        pdfFrame.removeAttribute('src');
+      }
+
+      cards.style.display='grid';
+      setStatus('Done.', 'ok');
+    }catch(err){
+      setStatus('Error: ' + err.message, 'err');
+      cards.style.display='none';
+    }finally{
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

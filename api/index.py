@@ -1,4 +1,4 @@
-﻿# api/index.py
+﻿# api/index.py  — minimal, defensive Flask API for Vercel
 from flask import Flask, request, jsonify, Response
 from werkzeug.exceptions import RequestEntityTooLarge
 import io
@@ -8,15 +8,20 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
 
 @app.get("/")
 def health():
+    # text/plain on purpose so you can eyeball it in the browser
     return Response("Flask OK: runtime & routing work", mimetype="text/plain")
+
+@app.get("/ping")
+def ping():
+    # quick JSON probe endpoint
+    return jsonify(ok=True, status="up")
 
 def extract_pdf_text(b: bytes) -> str:
     try:
-        from PyPDF2 import PdfReader  # lazy import
+        from PyPDF2 import PdfReader  # lazy import keeps cold start small
         reader = PdfReader(io.BytesIO(b))
         return "\n".join([(p.extract_text() or "") for p in reader.pages])
     except Exception as e:
-        # Make sure we never crash the function
         return f"[pdf-extract-error] {e}"
 
 @app.post("/analyze")
@@ -26,15 +31,15 @@ def analyze():
             return jsonify(ok=False, error="missing 'file' field (multipart/form-data)"), 400
 
         f = request.files["file"]
-        name = (f.filename or "").lower()
+        filename = (f.filename or "").lower()
         blob = f.read() or b""
 
-        if not name:
+        if not filename:
             return jsonify(ok=False, error="filename is required"), 400
 
-        if name.endswith(".pdf"):
+        if filename.endswith(".pdf"):
             text = extract_pdf_text(blob)
-        elif name.endswith(".txt"):
+        elif filename.endswith(".txt"):
             try:
                 text = blob.decode("utf-8", "ignore")
             except Exception as e:
@@ -44,14 +49,15 @@ def analyze():
 
         low = (text or "").lower()
         scores = {
-            "python": sum(kw in low for kw in ["python","pandas","numpy"]),
-            "data":   sum(kw in low for kw in ["sql","excel","power bi","tableau"]),
-            "ml":     sum(kw in low for kw in ["scikit-learn","machine learning","regression","classification"]),
+            "python": sum(kw in low for kw in ["python", "pandas", "numpy"]),
+            "data":   sum(kw in low for kw in ["sql", "excel", "power bi", "tableau"]),
+            "ml":     sum(kw in low for kw in ["scikit-learn", "machine learning", "regression", "classification"]),
         }
-        return jsonify(ok=True, filename=name, scores=scores, total=int(sum(scores.values())), preview=(text or "")[:800])
+        total = int(sum(scores.values()))
+        return jsonify(ok=True, filename=filename, scores=scores, total=total, preview=(text or "")[:800])
 
     except RequestEntityTooLarge:
         return jsonify(ok=False, error="File too large (max 10 MB)"), 413
     except Exception as e:
-        # Final safety net so the client never gets an empty/HTML body
+        # FINAL safety net: client will *always* see JSON
         return jsonify(ok=False, error=f"server error: {type(e).__name__}: {e}"), 500
