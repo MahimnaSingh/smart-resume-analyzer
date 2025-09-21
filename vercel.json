@@ -1,1 +1,8 @@
-{"version":2,"rewrites":[{"destination":"/api/:match*","source":"/api/:match*"},{"destination":"/index.html","source":"/"},{"destination":"/index.html","source":"/:path*"}]}
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/:match*", "destination": "/api/:match*" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/:path*", "destination": "/index.html" }
+  ]
+}
